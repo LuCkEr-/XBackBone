@@ -40,6 +40,8 @@
                                                     {% else %}
                                                         <img src="{{ route('upload.raw', {'id': media.id}) }}" class="img-fluid rounded">
                                                     {% endif %}
+                                                {% elseif isThumbnailable(media.mimetype) %}
+                                                    <img src="{{ urlFor('/' ~ media.user_code ~ '/' ~ media.code ~ '.' ~ media.extension ~ '.png/raw?width=84&height=42') }}" class="img-fluid rounded">
                                                 {% else %}
                                                     <i class="far {{ mime2font(media.mimetype) }} fa-2x"></i>
                                                 {% endif %}

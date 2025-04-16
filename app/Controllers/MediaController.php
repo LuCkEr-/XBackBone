@@ -11,9 +11,12 @@ use League\Flysystem\Filesystem;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Exception\HttpBadRequestException;
+use Slim\Exception\HttpForbiddenException;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Exception\HttpUnauthorizedException;
 use Slim\Psr7\Stream;
+use FFMpeg\FFMpeg;
+use FFMpeg\Coordinate\TimeCode;
 
 class MediaController extends Controller
 {
@@ -40,7 +43,7 @@ class MediaController extends Controller
         string $token = null
     ): Response {
         $media = $this->getMedia($userCode, $mediaCode, true);
-
+ 
         if (!$media || (!$media->published && $this->session->get('user_id') !== $media->user_id && !$this->session->get(
             'admin',
             false
@@ -143,6 +146,10 @@ class MediaController extends Controller
         ?string $ext = null
     ): Response {
         $media = $this->getMedia($userCode, $mediaCode, false);
+        
+        if (!$media && str_ends_with($mediaCode, '.png')) {
+            return $this->getThumbnail($request, $userCode, substr($mediaCode, 0, strlen($mediaCode) - 4), true);
+        }
 
         if (!$media || (!$media->published && $this->session->get('user_id') !== $media->user_id && !$this->session->get(
             'admin',
@@ -399,6 +406,25 @@ class MediaController extends Controller
         return $media;
     }
 
+    protected function getThumbnail(Request $request, $userCode, $mediaCode, $withTags = false)
+    {
+        $mediaCode = pathinfo($mediaCode)['filename'];
+        $media = $this->database->query(
+            'SELECT `uploads`.*, `users`.*, `users`.`id` AS `userId`, `uploads`.`id` AS `mediaId` FROM `uploads` INNER JOIN `users` ON `uploads`.`user_id` = `users`.`id` WHERE `user_code` = ? AND `uploads`.`code` = ? LIMIT 1',
+            [
+                $userCode,
+                $mediaCode,
+            ]
+        )->fetch();
+
+        return $this->makeThumbnail(
+            $this->storage,
+            $media,
+            param($request, 'width'),
+            param($request, 'height')
+        );
+    }
+
     /**
      * @param  Request  $request
      * @param  Response  $response
@@ -460,6 +486,32 @@ class MediaController extends Controller
             ->withBody($stream);
     }
 
+    protected function getThumbnailPath(
+        Filesystem $storage,
+        $media
+    ) {
+        $mime = $storage->getMimetype($media->storage_path);
+        
+        // Check if the media is a video
+        if (isThumbnailable($mime)) {
+            // Generate a temporary file for the thumbnail
+            $tempFileName = $media->storage_path . '_tmp.png';
+
+            if (!$storage->has($media->storage_path)) {
+                // Use FFmpeg to generate a thumbnail from the video
+                $ffmpeg = FFMpeg::create();
+                $video = $ffmpeg->open("./storage/" . $media->storage_path);
+
+                // Extract a frame at 1 second into the video
+                $video->frame(TimeCode::fromSeconds(1))->save("./storage/" . $tempFileName);
+            }
+
+            return $tempFileName;
+        }
+
+        return $media->storage_path;
+    }
+
     /**
      * @param  Filesystem  $storage
      * @param $media
@@ -478,7 +530,7 @@ class MediaController extends Controller
         $height = null,
         string $disposition = 'inline'
     ) {
-        return Image::make($storage->readStream($media->storage_path))
+        return Image::make($storage->readStream($this->getThumbnailPath($storage, $media)))
             ->resize($width, $height, function (Constraint $constraint) {
                 $constraint->aspectRatio();
             })

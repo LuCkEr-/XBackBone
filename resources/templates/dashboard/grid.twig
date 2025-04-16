@@ -40,6 +40,7 @@
                                                 <i class="fas fa-external-link-alt fa-2x text-shadow-link"></i>
                                             </div>
                                         </a>
+                                        
                                         <div class="overlay-rows-bottom pl-3 pr-3 pb-1">
                                             {% for tag_id, tag_name in media.tags %}
                                                 <a href="{{ queryParams({'tag':tag_id}) }}" class="badge badge-pill badge-light shadow-sm tag-item mr-1" data-id="{{ tag_id }}" data-media="{{ media.id }}" title="{{ tag_name }}">{{ tag_name }}</a>
@@ -50,6 +51,8 @@
                                 </div>
                                 {% if isDisplayableImage(media.mimetype) %}
                                     <div class="content-image" style="background-image: url({{ urlFor('/' ~ media.user_code ~ '/' ~ media.code ~ '.' ~ media.extension ~ '/raw?height=267') }});"></div>
+                                {% elseif isThumbnailable(media.mimetype) %}
+                                    <div class="content-image" style="background-image: url({{ urlFor('/' ~ media.user_code ~ '/' ~ media.code ~ '.' ~ media.extension ~ '.png/raw?height=267') }});"></div>
                                 {% else %}
                                     <div class="text-center" style="font-size: 178px;"><i class="far {{ mime2font(media.mimetype) }} mb-4 mt-4"></i></div>
                                 {% endif %}

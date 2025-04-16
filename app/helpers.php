@@ -73,6 +73,22 @@ if (!function_exists('isDisplayableImage')) {
     }
 }
 
+if (!function_exists('isThumbnailable')) {
+    /**
+     * @param  string  $mime
+     *
+     * @return bool
+     */
+    function isThumbnailable(?string $mime): bool
+    {
+        return in_array($mime, [
+            'video/mp4',
+            'video/ogg',
+            'video/webm'
+        ]);
+    }
+}
+
 if (!function_exists('isEmbeddable')) {
     /**
      * @param  ?string  $mime

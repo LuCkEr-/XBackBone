@@ -39,6 +39,7 @@ class ViewFactory
         $twig->addFunction(new TwigFunction('mime2font', 'mime2font'));
         $twig->addFunction(new TwigFunction('queryParams', 'queryParams'));
         $twig->addFunction(new TwigFunction('isDisplayableImage', 'isDisplayableImage'));
+        $twig->addFunction(new TwigFunction('isThumbnailable', 'isThumbnailable'));
         $twig->addFunction(new TwigFunction('inPath', 'inPath'));
         $twig->addFunction(new TwigFunction('humanFileSize', 'humanFileSize'));
         $twig->addFunction(new TwigFunction('param', 'param'));
